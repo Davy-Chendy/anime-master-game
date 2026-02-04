@@ -336,6 +336,32 @@
       cursor: pointer;
     }
 
+    /* ✅ 新增：随机数量 +/- 按钮 */
+    .step-btn {
+      width: 28px;
+      height: 28px;
+      border: 1px solid #d1d5db;
+      background: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 800;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .step-btn:hover { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,0.12); }
+    .step-btn:active { transform: translateY(0); }
+    .step-count {
+      min-width: 22px;
+      text-align: center;
+      font-weight: 800;
+      color: #111827;
+    }
+
     .config-modal {
       display: none;
       position: fixed;
@@ -500,13 +526,18 @@
           ⚙️ 配置图片链接
         </button>
 
-        <label class="toggle-row" title="开启后：每轮确认选择会随机额外展示 1 个方块">
-          <input type="checkbox" id="randomExtraToggle" checked onchange="toggleRandomExtra()" />
-          随机额外展示 1 个方块
+        <!-- ✅ 修改：默认关闭 + 加入 +/- 调整数量 -->
+        <label class="toggle-row" title="开启后：每轮确认选择会随机额外展示指定数量的方块（即使你本轮没选任何方块，也可以确认并展示随机方块）">
+          <input type="checkbox" id="randomExtraToggle" onchange="toggleRandomExtra()" />
+          随机额外展示
+          <button type="button" class="step-btn" onclick="adjustRandomExtra(-1, event)">−</button>
+          <span class="step-count" id="randomExtraCountText">1</span>
+          <button type="button" class="step-btn" onclick="adjustRandomExtra(1, event)">+</button>
+          个方块
         </label>
 
         <div class="selection-count" id="selectionCount">
-          已选择: 0 个方块
+          已手动选择: 0 个方块
         </div>
 
         <button class="btn btn-success" id="showFullBtn" onclick="showFullImage()" disabled>
@@ -630,7 +661,11 @@
     let isFullImageMode = false;
     let imageUrls = [];
     let players = [];
-    let randomExtraEnabled = true;
+    let randomExtraEnabled = false; // ✅ 修改：默认关闭
+    let randomExtraCount = 1;       // ✅ 新增：随机额外展示数量（最小 1）
+
+    // ✅ 新增：用于避免 resetAll 时出现“成功加载 0 张图片！”等过期回调
+    let imageLoadToken = 0;
 
     // ✅ 新增：答案公布态（一次性，不提供关闭；下一张图会自动退出）
     let answerRevealed = false;
@@ -659,6 +694,7 @@
         revealedCells: Array.from(revealedCells),
         randomRevealedCells: Array.from(randomRevealedCells),
         randomExtraEnabled,
+        randomExtraCount,
         answerRevealed
       };
     }
@@ -678,6 +714,13 @@
         if (toggle) toggle.checked = randomExtraEnabled;
       }
 
+      if (typeof state.randomExtraCount === 'number') {
+        const n = Math.max(1, Math.floor(state.randomExtraCount));
+        randomExtraCount = n;
+        const t = document.getElementById('randomExtraCountText');
+        if (t) t.textContent = String(randomExtraCount);
+      }
+
       if (typeof state.answerRevealed === 'boolean') {
         answerRevealed = state.answerRevealed;
       }
@@ -693,8 +736,11 @@
 
       renderScoreboard();
 
-      // 确保玩家端图片能显示：判断是否需要 load
       const img = document.getElementById('gameImage');
+      const wrapper = document.getElementById('imageWrapper');
+      const loading = document.getElementById('loadingText');
+
+      // 确保玩家端图片能显示：判断是否需要 load
       const targetUrl = (imageUrls && imageUrls.length > 0) ? imageUrls[nextImageIndex] : '';
       const alreadyLoadedThis =
         !!img.src && !!targetUrl && (img.src === targetUrl || img.src.includes(targetUrl));
@@ -719,10 +765,30 @@
           updateButtonsByState();
         }
       } else {
+        // ✅ 关键修复：当 host resetAll 后，玩家屏也要把 UI 恢复到初始状态
+        selectedCells = [];
+        isFullImageMode = false;
+
+        // 盖黑/清状态（避免玩家屏还留着上一张的视觉）
+        ensureGrid(true);
+        coverAllCells();
+
+        // 复位图片区域到“请先设置玩家和图片”
+        if (img) {
+          img.src = '';
+          img.style.display = 'none';
+        }
+        if (wrapper) wrapper.style.display = 'none';
+        if (loading) {
+          loading.style.display = 'block';
+          loading.textContent = '请先设置玩家和图片';
+        }
+
         updateStatus();
         updateButtonsByState();
       }
     }
+
 
     channel.onmessage = (ev) => {
       const msg = ev.data;
@@ -750,8 +816,18 @@
       } else {
         const savedToggle = localStorage.getItem('animeGameRandomExtraEnabled');
         if (savedToggle !== null) randomExtraEnabled = (savedToggle === 'true');
+
+        const savedCount = localStorage.getItem('animeGameRandomExtraCount');
+        if (savedCount !== null) {
+          const n = parseInt(savedCount, 10);
+          if (!Number.isNaN(n)) randomExtraCount = Math.max(1, Math.floor(n));
+        }
+
         const toggle = document.getElementById('randomExtraToggle');
         if (toggle) toggle.checked = randomExtraEnabled;
+
+        const t = document.getElementById('randomExtraCountText');
+        if (t) t.textContent = String(randomExtraCount);
       }
 
       const savedPlayers = localStorage.getItem('animeGamePlayers');
@@ -817,7 +893,7 @@
       nextBtn.disabled = !hasReady;
       revealBtn.disabled = !hasReady;
 
-      // confirmBtn 由 updateSelectionCount 控制（需选 >0）
+      // confirmBtn 由 updateSelectionCount 控制
       updateSelectionCount();
     }
 
@@ -842,6 +918,7 @@
       localStorage.removeItem('animeGamePlayers');
       localStorage.removeItem('animeGameImageUrls');
       localStorage.removeItem('animeGameRandomExtraEnabled');
+      localStorage.removeItem('animeGameRandomExtraCount'); // ✅ 新增
 
       players = [];
       imageUrls = [];
@@ -851,8 +928,17 @@
       revealedCells.clear();
       randomRevealedCells.clear();
       isFullImageMode = false;
-      randomExtraEnabled = true;
+      randomExtraEnabled = false; // ✅ 修改：重置后默认关闭
+      randomExtraCount = 1;       // ✅ 新增：重置回 1
       answerRevealed = false;
+
+      // ✅ 关键：打断任何“旧的图片加载回调”
+      imageLoadToken++;
+
+      const toggle = document.getElementById('randomExtraToggle');
+      if (toggle) toggle.checked = randomExtraEnabled;
+      const t = document.getElementById('randomExtraCountText');
+      if (t) t.textContent = String(randomExtraCount);
 
       renderScoreboard();
       ensureGrid(true);
@@ -893,13 +979,29 @@
       broadcastState('clear_scores');
     }
 
-    // ========== 随机额外展示开关 ==========
+    // ========== 随机额外展示开关 + 数量 ==========
     function toggleRandomExtra() {
       if (!IS_HOST) return;
       const toggle = document.getElementById('randomExtraToggle');
       randomExtraEnabled = !!toggle.checked;
       localStorage.setItem('animeGameRandomExtraEnabled', String(randomExtraEnabled));
+      updateSelectionCount(); // ✅ 让“确认按钮”即时按新逻辑更新
       broadcastState('toggle_random_extra');
+    }
+
+    function adjustRandomExtra(delta, ev) {
+      if (!IS_HOST) return;
+      if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+
+      const next = Math.max(1, Math.min(20, randomExtraCount + delta)); // ✅ 上限给个安全值
+      randomExtraCount = next;
+
+      const t = document.getElementById('randomExtraCountText');
+      if (t) t.textContent = String(randomExtraCount);
+
+      localStorage.setItem('animeGameRandomExtraCount', String(randomExtraCount));
+      updateSelectionCount(); // ✅ 让“确认按钮”即时按新逻辑更新
+      broadcastState('adjust_random_extra_count');
     }
 
     // ========== 玩家设置相关 ==========
@@ -1068,7 +1170,11 @@
 
       resetProgressForNewImage(0);
 
+      const myToken = imageLoadToken + 1; // ✅ 仅用于理解（真正 token 在 loadImage 内部自增）
       loadImage(0, () => {
+        // ✅ 若期间被 resetAll() 打断，则不再执行后续弹窗/渲染逻辑
+        if (imageUrls.length === 0) return;
+
         ensureGrid(true);
         renderGridFromState();
         updateStatus();
@@ -1104,6 +1210,9 @@
         return;
       }
 
+      // ✅ 每次加载都生成一个 token；resetAll() 会 imageLoadToken++ 打断旧回调
+      const token = ++imageLoadToken;
+
       const img = document.getElementById('gameImage');
       const wrapper = document.getElementById('imageWrapper');
       const loading = document.getElementById('loadingText');
@@ -1119,6 +1228,7 @@
       wrapper.style.display = 'none';
 
       img.onload = function () {
+        if (token !== imageLoadToken) return; // ✅ 过期回调直接丢弃
         loading.style.display = 'none';
         wrapper.style.display = 'inline-block';
         img.style.display = 'block';
@@ -1127,6 +1237,7 @@
       };
 
       img.onerror = function () {
+        if (token !== imageLoadToken) return; // ✅ 过期回调直接丢弃
         loading.textContent = '图片加载失败，请检查链接';
         loading.style.display = 'block';
         wrapper.style.display = 'none';
@@ -1218,7 +1329,15 @@
 
       const confirmBtn = document.getElementById('confirmSelectionBtn');
       if (confirmBtn) {
-        confirmBtn.disabled = !(IS_HOST && isFullImageMode && selectedCells.length > 0 && !answerRevealed);
+        // ✅ 修改逻辑：
+        // 只要在“选块模式”，且（选了>0 或 开启随机额外展示），就允许确认
+        const canConfirm =
+          IS_HOST &&
+          isFullImageMode &&
+          !answerRevealed &&
+          (selectedCells.length > 0 || (randomExtraEnabled && randomExtraCount > 0));
+
+        confirmBtn.disabled = !canConfirm;
       }
     }
 
@@ -1226,16 +1345,23 @@
       if (!IS_HOST) return;
       if (!isFullImageMode) return;
       if (answerRevealed) return;
-      if (selectedCells.length <= 0) return;
+
+      // ✅ 修改逻辑：
+      // 若没选方块，但开启了随机额外展示，也允许继续
+      if (selectedCells.length <= 0 && !(randomExtraEnabled && randomExtraCount > 0)) return;
 
       selectedCells.forEach(index => revealedCells.add(index));
 
       if (randomExtraEnabled) {
-        const available = [];
-        for (let i = 0; i < TOTAL_CELLS; i++) {
-          if (!revealedCells.has(i) && !randomRevealedCells.has(i)) available.push(i);
-        }
-        if (available.length > 0) {
+        // ✅ 随机额外展示：支持多个
+        const picks = Math.max(1, Math.floor(randomExtraCount));
+        for (let k = 0; k < picks; k++) {
+          const available = [];
+          for (let i = 0; i < TOTAL_CELLS; i++) {
+            if (!revealedCells.has(i) && !randomRevealedCells.has(i)) available.push(i);
+          }
+          if (available.length <= 0) break;
+
           const rand = available[Math.floor(Math.random() * available.length)];
           randomRevealedCells.add(rand);
           revealedCells.add(rand);
