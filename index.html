@@ -2,913 +2,987 @@
 <html lang="zh-CN">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>动漫高手 3.0</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Microsoft YaHei', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .container {
-            max-width: 1400px;
-            width: 100%;
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            padding: 30px;
-        }
-
-        h1 {
-            text-align: center;
-            color: #667eea;
-            margin-bottom: 20px;
-            font-size: 2.5em;
-        }
-
-        .role-badge {
-            display: inline-block;
-            margin-left: 10px;
-            padding: 6px 10px;
-            border-radius: 999px;
-            font-size: 14px;
-            vertical-align: middle;
-            background: #eef2ff;
-            color: #4338ca;
-            border: 1px solid #c7d2fe;
-        }
-
-        .status-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #f8f9fa;
-            padding: 15px 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .status-item {
-            font-size: 1.1em;
-            color: #333;
-        }
-
-        .status-item strong {
-            color: #667eea;
-        }
-
-        /* 玩家计分板 */
-        .scoreboard {
-            background: linear-gradient(135deg, #fff9e6 0%, #ffe6cc 100%);
-            padding: 20px;
-            border-radius: 15px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .scoreboard h2 {
-            color: #ff9800;
-            margin-bottom: 15px;
-            text-align: center;
-            font-size: 1.5em;
-        }
-
-        .players-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-        }
-
-        .player-card {
-            background: white;
-            padding: 15px;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .player-info {
-            flex: 1;
-        }
-
-        .player-name {
-            font-size: 1.2em;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 5px;
-        }
-
-        .player-score {
-            font-size: 1.8em;
-            color: #ff9800;
-            font-weight: bold;
-        }
-
-        .score-buttons {
-            display: flex;
-            gap: 5px;
-            flex-direction: column;
-        }
-
-        .score-btn {
-            width: 35px;
-            height: 35px;
-            border: none;
-            border-radius: 5px;
-            font-size: 1.2em;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .score-btn.plus {
-            background: #4CAF50;
-            color: white;
-        }
-
-        .score-btn.plus:hover {
-            background: #45a049;
-            transform: scale(1.1);
-        }
-
-        .score-btn.minus {
-            background: #f44336;
-            color: white;
-        }
-
-        .score-btn.minus:hover {
-            background: #d32f2f;
-            transform: scale(1.1);
-        }
-
-        .game-area {
-            display: flex;
-            gap: 30px;
-            margin-bottom: 20px;
-            align-items: flex-start;
-        }
-
-        .image-container {
-            flex: 1;
-            position: relative;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: transparent;
-        }
-
-        .image-wrapper {
-            position: relative;
-            display: inline-block;
-            width: 100%;
-        }
-
-        #gameImage {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
-
-        .loading {
-            color: #666;
-            font-size: 1.2em;
-            padding: 16px;
-            text-align: center;
-        }
-
-        .grid-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            display: grid;
-            grid-template-columns: repeat(9, 1fr);
-            grid-template-rows: repeat(5, 1fr);
-            pointer-events: none;
-        }
-
-        .grid-cell {
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            cursor: pointer;
-            pointer-events: all;
-            transition: all 0.25s;
-        }
-
-        .grid-cell.selectable:hover {
-            background: rgba(102, 126, 234, 0.3);
-        }
-
-        .grid-cell.selected {
-            background: rgba(255, 193, 7, 0.6);
-            border: 2px solid #ffc107;
-        }
-
-        /* ✅ 给玩家看的“揭示”：必须完全透明，露出原图 */
-        .grid-cell.revealed {
-            background: transparent;
-            /* 关键：不能有绿色底 */
-            border: 2px solid rgba(76, 175, 80, 0.95);
-            box-shadow: inset 0 0 10px rgba(76, 175, 80, 0.35);
-        }
-
-        /* ✅ 主持人全图模式提示：仅用于提醒“上一轮揭示过” */
-        .grid-cell.revealed-hint {
-            background: rgba(76, 175, 80, 0.18);
-            /* 绿色蒙版只在提示态出现 */
-        }
-
-        /* ✅ 随机揭示：同样不加底色，只用边框/阴影 */
-        .grid-cell.random-revealed {
-            background: transparent;
-            border: 2px solid rgba(255, 87, 34, 0.95);
-            box-shadow: inset 0 0 10px rgba(255, 87, 34, 0.30);
-        }
-
-        /* ✅ 随机揭示的主持人提示（可选） */
-        .grid-cell.random-revealed-hint {
-            background: rgba(255, 87, 34, 0.12);
-        }
-
-
-        .grid-cell.covered {
-            background: rgba(0, 0, 0, 1);
-        }
-
-        .control-panel {
-            flex: 0 0 320px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .btn {
-            padding: 14px 22px;
-            font-size: 1.05em;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-weight: bold;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
-        }
-
-        .btn:active {
-            transform: translateY(0);
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
-            color: white;
-        }
-
-        .btn-warning {
-            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
-            color: white;
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
-            color: white;
-        }
-
-        .btn-info {
-            background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
-            color: white;
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .info-box {
-            background: #e3f2fd;
-            padding: 14px;
-            border-radius: 10px;
-            border-left: 4px solid #2196f3;
-        }
-
-        .info-box h3 {
-            color: #1976d2;
-            margin-bottom: 10px;
-        }
-
-        .info-box p {
-            color: #555;
-            line-height: 1.6;
-        }
-
-        .selection-count {
-            background: #fff3cd;
-            padding: 10px;
-            border-radius: 8px;
-            text-align: center;
-            font-weight: bold;
-            color: #856404;
-        }
-
-        .toggle-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: #f8f9fa;
-            border: 1px solid #e5e7eb;
-            padding: 10px 12px;
-            border-radius: 10px;
-            color: #333;
-            font-weight: 600;
-            user-select: none;
-        }
-
-        .toggle-row input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-        }
-
-        .config-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .config-modal.active {
-            display: flex;
-        }
-
-        .config-content {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            max-width: 600px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-
-        .config-content h2 {
-            color: #667eea;
-            margin-bottom: 20px;
-        }
-
-        .config-content textarea {
-            width: 100%;
-            min-height: 300px;
-            padding: 15px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-family: monospace;
-            font-size: 14px;
-            margin-bottom: 15px;
-        }
-
-        .config-buttons {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-        }
-
-        /* 玩家设置模态框 */
-        .player-setup {
-            margin-bottom: 20px;
-        }
-
-        .player-input {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 10px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 1em;
-        }
-
-        .player-count-selector {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-        }
-
-        .count-btn {
-            padding: 10px 20px;
-            border: 2px solid #667eea;
-            background: white;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1em;
-            font-weight: bold;
-            color: #667eea;
-            transition: all 0.2s;
-        }
-
-        .count-btn:hover {
-            background: #667eea;
-            color: white;
-        }
-
-        .count-btn.active {
-            background: #667eea;
-            color: white;
-        }
-
-        .player-names-input {
-            display: none;
-        }
-
-        .player-names-input.active {
-            display: block;
-        }
-
-        /* === 玩家屏锁定：完全不可操作 === */
-        body.player-locked .control-panel,
-        body.player-locked .config-modal {
-            display: none !important;
-        }
-
-        body.player-locked .grid-overlay {
-            pointer-events: none !important;
-        }
-
-        body.player-locked .score-buttons {
-            display: none !important;
-        }
-
-        @media (max-width: 968px) {
-            .game-area {
-                flex-direction: column;
-            }
-
-            .control-panel {
-                flex: 1;
-            }
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>动漫高手 3.0</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Microsoft YaHei', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .container {
+      max-width: 1400px;
+      width: 100%;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      padding: 30px;
+    }
+
+    /* ✅ 标题区：用于右上角放“一键重置” */
+    .title-bar {
+      position: relative;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #667eea;
+      margin-bottom: 0;
+      font-size: 2.5em;
+      line-height: 1.2;
+    }
+
+    /* ✅ 标题右上角重置按钮 */
+    .top-reset-btn {
+      position: absolute;
+      right: 0;
+      top: 0;
+      padding: 10px 14px;
+      font-size: 0.95em;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: bold;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+      background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+      color: white;
+      white-space: nowrap;
+    }
+
+    .top-reset-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.22); }
+    .top-reset-btn:active { transform: translateY(0); }
+
+    /* 玩家屏隐藏顶部重置按钮 */
+    body.player-locked .top-reset-btn { display: none !important; }
+
+    .role-badge {
+      display: inline-block;
+      margin-left: 10px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 14px;
+      vertical-align: middle;
+      background: #eef2ff;
+      color: #4338ca;
+      border: 1px solid #c7d2fe;
+    }
+
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f8f9fa;
+      padding: 15px 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .status-item { font-size: 1.1em; color: #333; }
+    .status-item strong { color: #667eea; }
+
+    /* 玩家计分板 */
+    .scoreboard {
+      background: linear-gradient(135deg, #fff9e6 0%, #ffe6cc 100%);
+      padding: 20px;
+      border-radius: 15px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .scoreboard-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 15px;
+    }
+
+    .scoreboard h2 {
+      color: #ff9800;
+      text-align: center;
+      font-size: 1.5em;
+      margin: 0;
+      flex: 1;
+    }
+
+    .scoreboard-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      align-items: center;
+      flex: 0 0 auto;
+    }
+
+    .btn-mini {
+      padding: 10px 14px;
+      font-size: 0.95em;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: bold;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+      white-space: nowrap;
+    }
+
+    .btn-mini:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(0,0,0,0.22); }
+    .btn-mini:active { transform: translateY(0); }
+    .btn-mini-danger { background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%); color: white; }
+
+    .players-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+    }
+
+    .player-card {
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .player-info { flex: 1; }
+    .player-name { font-size: 1.2em; font-weight: bold; color: #333; margin-bottom: 5px; }
+    .player-score { font-size: 1.8em; color: #ff9800; font-weight: bold; }
+
+    .score-buttons { display: flex; gap: 5px; flex-direction: column; }
+
+    .score-btn {
+      width: 35px;
+      height: 35px;
+      border: none;
+      border-radius: 5px;
+      font-size: 1.2em;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .score-btn.plus { background: #4CAF50; color: white; }
+    .score-btn.plus:hover { background: #45a049; transform: scale(1.1); }
+
+    .score-btn.minus { background: #f44336; color: white; }
+    .score-btn.minus:hover { background: #d32f2f; transform: scale(1.1); }
+
+    .game-area {
+      display: flex;
+      gap: 30px;
+      margin-bottom: 20px;
+      align-items: flex-start;
+    }
+
+    .image-container {
+      flex: 1;
+      position: relative;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+    }
+
+    .image-wrapper { position: relative; display: inline-block; width: 100%; }
+    #gameImage { width: 100%; height: auto; display: block; }
+
+    .loading {
+      color: #666;
+      font-size: 1.2em;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .grid-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-columns: repeat(9, 1fr);
+      grid-template-rows: repeat(5, 1fr);
+      pointer-events: none;
+    }
+
+    .grid-cell {
+      border: none; /* ✅ 不用 border 画网格线 */
+      outline: 1px solid rgba(255, 255, 255, 0.3);  /* ✅ 永远存在的网格线 */
+      outline-offset: -1px;                         /* ✅ 贴边，不扩大格子 */
+      cursor: pointer;
+      pointer-events: all;
+      transition: all 0.25s;
+    }
+
+    .grid-cell.selectable:hover { background: rgba(102, 126, 234, 0.3); }
+
+    .grid-cell.selected {
+      background: rgba(255, 193, 7, 0.6);
+      border: 2px solid #ffc107;
+    }
+
+    /* ✅ 给玩家看的“揭示”：必须完全透明，露出原图 */
+    .grid-cell.revealed {
+      background: transparent;
+      border: 2px solid rgba(76, 175, 80, 0.95);
+      box-shadow: inset 0 0 10px rgba(76, 175, 80, 0.35);
+    }
+
+    /* ✅ 主持人全图模式提示：仅用于提醒“上一轮揭示过” */
+    .grid-cell.revealed-hint {
+      background: rgba(76, 175, 80, 0.55);
+    }
+
+    /* ✅ 随机揭示：同样不加底色，只用边框/阴影 */
+    .grid-cell.random-revealed {
+      background: transparent;
+      border: 2px solid rgba(255, 87, 34, 0.95);
+      box-shadow: inset 0 0 10px rgba(255, 87, 34, 0.30);
+    }
+
+    /* ✅ 随机揭示的主持人提示 */
+    .grid-cell.random-revealed-hint {
+      background: rgba(255, 87, 34, 0.55);
+    }
+
+    .grid-cell.covered { background: rgba(0, 0, 0, 1); }
+
+    .control-panel {
+      flex: 0 0 320px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .btn {
+      padding: 14px 22px;
+      font-size: 1.05em;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-weight: bold;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3); }
+    .btn:active { transform: translateY(0); }
+
+    .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+    .btn-success { background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%); color: white; }
+    .btn-warning { background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%); color: white; }
+    .btn-danger  { background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%); color: white; }
+    .btn-info    { background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%); color: white; }
+
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .info-box {
+      background: #e3f2fd;
+      padding: 14px;
+      border-radius: 10px;
+      border-left: 4px solid #2196f3;
+    }
+
+    .info-box h3 { color: #1976d2; margin-bottom: 10px; }
+    .info-box p { color: #555; line-height: 1.6; }
+
+    .info-box a {
+      color: #1976d2;
+      font-weight: 700;
+      text-decoration: underline;
+    }
+
+    .selection-count {
+      background: #fff3cd;
+      padding: 10px;
+      border-radius: 8px;
+      text-align: center;
+      font-weight: bold;
+      color: #856404;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #f8f9fa;
+      border: 1px solid #e5e7eb;
+      padding: 10px 12px;
+      border-radius: 10px;
+      color: #333;
+      font-weight: 600;
+      user-select: none;
+    }
+
+    .toggle-row input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    .config-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .config-modal.active { display: flex; }
+
+    .config-content {
+      background: white;
+      padding: 30px;
+      border-radius: 15px;
+      max-width: 600px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .config-content h2 { color: #667eea; margin-bottom: 20px; }
+
+    .config-content textarea {
+      width: 100%;
+      min-height: 300px;
+      padding: 15px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 14px;
+      margin-bottom: 15px;
+    }
+
+    .config-buttons { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+
+    /* 玩家设置模态框 */
+    .player-setup { margin-bottom: 20px; }
+
+    .player-input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 10px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 1em;
+    }
+
+    .player-count-selector { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+
+    .count-btn {
+      padding: 10px 20px;
+      border: 2px solid #667eea;
+      background: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 1em;
+      font-weight: bold;
+      color: #667eea;
+      transition: all 0.2s;
+    }
+
+    .count-btn:hover { background: #667eea; color: white; }
+    .count-btn.active { background: #667eea; color: white; }
+
+    .player-names-input { display: none; }
+    .player-names-input.active { display: block; }
+
+    /* === 玩家屏锁定：完全不可操作 === */
+    body.player-locked .control-panel,
+    body.player-locked .config-modal { display: none !important; }
+
+    body.player-locked .grid-overlay { pointer-events: none !important; }
+    body.player-locked .score-buttons { display: none !important; }
+
+    @media (max-width: 968px) {
+      .game-area { flex-direction: column; }
+      .control-panel { flex: 1; }
+      .scoreboard-header { flex-direction: column; }
+      .scoreboard-actions { width: 100%; justify-content: center; }
+      .top-reset-btn { position: static; width: 100%; margin-top: 10px; }
+      .title-bar { display: flex; flex-direction: column; gap: 8px; }
+    }
+
+    /* ✅ 玩家屏：去掉绿/红边框与发光，但保留 outline 网格线 */
+    body.player-locked .grid-cell.revealed,
+    body.player-locked .grid-cell.random-revealed {
+      border: none !important;        /* ✅ 不要绿/红 border */
+      box-shadow: none !important;    /* ✅ 不要发光 */
+      background: transparent !important;
+    }
+  </style>
 </head>
 
 <body>
-    <div class="container">
-        <h1>
-            🎮 动漫高手 3.0
-            <span class="role-badge" id="roleBadge">role</span>
-        </h1>
-
-        <!-- 玩家计分板 -->
-        <div class="scoreboard" id="scoreboard" style="display:none;">
-            <h2>🏆 玩家计分板</h2>
-            <div class="players-grid" id="playersGrid"></div>
-        </div>
-
-        <div class="status-bar">
-            <div class="status-item">
-                <strong>当前图片：</strong> <span id="currentImage">0</span> / <span id="totalImages">0</span>
-            </div>
-            <div class="status-item">
-                <strong>当前轮次：</strong> <span id="currentRound">0</span>
-            </div>
-            <div class="status-item">
-                <strong>已展示方块：</strong> <span id="revealedCount">0</span> / 45
-            </div>
-        </div>
-
-        <div class="game-area">
-            <div class="image-container">
-                <div class="image-wrapper" id="imageWrapper">
-                    <img id="gameImage" src="" alt="游戏图片" style="display:none;">
-                    <div class="grid-overlay" id="gridOverlay"></div>
-                </div>
-                <div class="loading" id="loadingText">请先设置玩家和图片</div>
-            </div>
-
-            <!-- 控制面板（玩家屏会整体隐藏） -->
-            <div class="control-panel" id="controlPanel">
-                <button class="btn btn-info" id="openPlayerBtn" onclick="openPlayerScreen()">
-                    🖥️ 打开玩家显示屏
-                </button>
-
-                <button class="btn btn-danger" id="clearScoresBtn" onclick="clearAllScores()">
-                    🧹 清空所有分数
-                </button>
-
-                <button class="btn btn-info" id="playerSetupBtn" onclick="openPlayerSetup()">
-                    👥 设置玩家
-                </button>
-
-                <button class="btn btn-info" id="configBtn" onclick="openConfig()">
-                    ⚙️ 配置图片链接
-                </button>
-
-                <!-- (4) 随机额外展示开关：默认开启 -->
-                <label class="toggle-row" title="开启后：每轮确认选择会随机额外展示 1 个方块">
-                    <input type="checkbox" id="randomExtraToggle" checked onchange="toggleRandomExtra()" />
-                    随机额外展示 1 个方块
-                </label>
-
-                <!-- (3) 不限制数量，只显示当前选择数量 -->
-                <div class="selection-count" id="selectionCount">
-                    已选择: 0 个方块
-                </div>
-
-                <button class="btn btn-success" id="showFullBtn" onclick="showFullImage()" disabled>
-                    👁️ 展示完整图片（出题者）
-                </button>
-
-                <button class="btn btn-primary" id="confirmSelectionBtn" onclick="confirmSelection()" disabled>
-                    ✅ 确认选择并遮盖
-                </button>
-
-                <button class="btn btn-danger" id="nextImageBtn" onclick="nextImage()" disabled>
-                    ⏭️ 下一张图片
-                </button>
-
-                <div class="info-box">
-                    <h3>📋 操作说明</h3>
-                    <p id="instructionText">
-                        1. 点击"设置玩家"输入玩家信息<br>
-                        2. 点击"配置图片链接"设置图片<br>
-                        3. 点击"展示完整图片"让出题者查看并选任意数量方块<br>
-                        4. 点击"确认选择"结束本轮；下一轮直接再次点"展示完整图片"
-                    </p>
-                </div>
-            </div>
-        </div>
+  <div class="container">
+    <!-- ✅ 标题栏：右上角放“一键重置” -->
+    <div class="title-bar">
+      <h1>
+        🎮 动漫高手 3.0
+        <span class="role-badge" id="roleBadge">role</span>
+      </h1>
+      <button class="top-reset-btn" id="resetAllBtnTop" onclick="resetAll()">
+        ♻️ 一键重置
+      </button>
     </div>
 
-    <!-- 玩家设置模态框 -->
-    <div class="config-modal" id="playerSetupModal">
-        <div class="config-content">
-            <h2>👥 设置玩家</h2>
-            <div class="player-setup">
-                <p style="color: #666; margin-bottom: 15px;">请选择玩家人数：</p>
-                <div class="player-count-selector" id="playerCountSelector">
-                    <button class="count-btn" onclick="selectPlayerCount(2)">2人</button>
-                    <button class="count-btn" onclick="selectPlayerCount(3)">3人</button>
-                    <button class="count-btn" onclick="selectPlayerCount(4)">4人</button>
-                    <button class="count-btn" onclick="selectPlayerCount(5)">5人</button>
-                    <button class="count-btn" onclick="selectPlayerCount(6)">6人</button>
-                    <button class="count-btn" onclick="selectPlayerCount(7)">7人</button>
-                    <button class="count-btn" onclick="selectPlayerCount(8)">8人</button>
-                </div>
-
-                <div class="player-names-input" id="playerNamesInput">
-                    <p style="color: #666; margin-bottom: 10px;">请输入玩家名字：</p>
-                    <div id="nameInputs"></div>
-                </div>
-            </div>
-            <div class="config-buttons">
-                <button class="btn btn-primary" onclick="savePlayerSetup()">💾 保存玩家设置</button>
-                <button class="btn btn-warning" onclick="closePlayerSetup()">❌ 取消</button>
-            </div>
+    <!-- 玩家计分板 -->
+    <div class="scoreboard" id="scoreboard" style="display:none;">
+      <div class="scoreboard-header">
+        <h2>🏆 玩家计分板</h2>
+        <div class="scoreboard-actions" id="scoreboardActions" style="display:none;">
+          <button class="btn-mini btn-mini-danger" onclick="clearAllScores()">🧹 清空分数</button>
         </div>
+      </div>
+      <div class="players-grid" id="playersGrid"></div>
     </div>
 
-    <!-- 图片配置模态框 -->
-    <div class="config-modal" id="configModal">
-        <div class="config-content">
-            <h2>⚙️ 配置图片链接</h2>
-            <p style="color: #666; margin-bottom: 15px;">
-                每行一个图片URL，支持任何可访问的在线图片链接<br>
-                示例：https://example.com/pic1.jpg
-            </p>
-            <textarea id="imageUrlsInput"
-                placeholder="请输入图片链接，每行一个&#10;https://example.com/pic1.jpg&#10;https://example.com/pic2.jpg&#10;..."></textarea>
-            <div class="config-buttons">
-                <button class="btn btn-primary" onclick="saveConfig()">💾 保存配置</button>
-                <button class="btn btn-warning" onclick="closeConfig()">❌ 取消</button>
-            </div>
-        </div>
+    <div class="status-bar">
+      <div class="status-item">
+        <strong>当前图片：</strong> <span id="currentImage">0</span> / <span id="totalImages">0</span>
+      </div>
+      <div class="status-item">
+        <strong>当前轮次：</strong> <span id="currentRound">0</span>
+      </div>
+      <div class="status-item">
+        <strong>已展示方块：</strong> <span id="revealedCount">0</span> / 45
+      </div>
     </div>
 
-    <script>
-        /**
-         * 双屏主持人模式（同机双窗口）
-         * - role=host：可操作（默认）
-         * - role=player：完全不可操作，只接收 host 广播的状态并渲染
-         */
-        const params = new URLSearchParams(location.search);
-        const ROLE = (params.get('role') || 'host').toLowerCase();
-        const IS_HOST = ROLE !== 'player';
+    <div class="game-area">
+      <div class="image-container">
+        <div class="image-wrapper" id="imageWrapper">
+          <img id="gameImage" src="" alt="游戏图片" style="display:none;">
+          <div class="grid-overlay" id="gridOverlay"></div>
+        </div>
+        <div class="loading" id="loadingText">请先设置玩家和图片</div>
+      </div>
 
-        const CHANNEL_NAME = 'anime-game-sync-v2';
-        const channel = new BroadcastChannel(CHANNEL_NAME);
+      <!-- 控制面板（玩家屏会整体隐藏） -->
+      <div class="control-panel" id="controlPanel">
+        <!-- ✅ 新增：帮助按钮，放在打开玩家显示屏上方 -->
+        <button class="btn btn-info" id="helpBtn" onclick="openHelp()">
+          ❓ 帮助
+        </button>
 
-        // 游戏状态
-        let currentImageIndex = 0;
-        let currentRound = 0;
-        let selectedCells = [];
-        let revealedCells = new Set();
-        let randomRevealedCells = new Set();
-        let isFullImageMode = false;
-        let imageUrls = [];
-        let players = [];
-        let randomExtraEnabled = true; // (4) 默认开启
+        <button class="btn btn-info" id="openPlayerBtn" onclick="openPlayerScreen()">
+          🖥️ 打开玩家显示屏
+        </button>
 
-        const ROWS = 5,
-            COLS = 9;
-        const TOTAL_CELLS = ROWS * COLS;
+        <!-- ✅ 已移除：原来的 resetAllBtn（重置按钮已放到标题右上角） -->
 
-        // ========== 同步 ==========
-        function getGameState() {
-            return {
-                v: 2,
-                ts: Date.now(),
-                currentImageIndex,
-                currentRound,
-                imageUrls,
-                players,
-                revealedCells: Array.from(revealedCells),
-                randomRevealedCells: Array.from(randomRevealedCells),
-                randomExtraEnabled
-            };
-        }
+        <button class="btn btn-info" id="playerSetupBtn" onclick="openPlayerSetup()">
+          👥 设置玩家
+        </button>
 
-        function broadcastState(reason = '') {
-            if (!IS_HOST) return;
-            channel.postMessage({
-                type: 'state',
-                reason,
-                state: getGameState()
-            });
-        }
+        <button class="btn btn-info" id="configBtn" onclick="openConfig()">
+          ⚙️ 配置图片链接
+        </button>
 
-        function applyGameState(state) {
-            if (Array.isArray(state.imageUrls)) imageUrls = state.imageUrls;
-            if (Array.isArray(state.players)) players = state.players;
+        <label class="toggle-row" title="开启后：每轮确认选择会随机额外展示 1 个方块">
+          <input type="checkbox" id="randomExtraToggle" checked onchange="toggleRandomExtra()" />
+          随机额外展示 1 个方块
+        </label>
 
-            if (typeof state.randomExtraEnabled === 'boolean') {
-                randomExtraEnabled = state.randomExtraEnabled;
-                const toggle = document.getElementById('randomExtraToggle');
-                if (toggle) toggle.checked = randomExtraEnabled;
-            }
+        <div class="selection-count" id="selectionCount">
+          已选择: 0 个方块
+        </div>
 
-            const nextImageIndex = Number(state.currentImageIndex || 0);
-            const nextRound = Number(state.currentRound || 0);
-            const nextRevealed = new Set(Array.isArray(state.revealedCells) ? state.revealedCells : []);
-            const nextRandom = new Set(Array.isArray(state.randomRevealedCells) ? state.randomRevealedCells : []);
+        <button class="btn btn-success" id="showFullBtn" onclick="showFullImage()" disabled>
+          🧩 选择展示区块
+        </button>
 
-            currentRound = nextRound;
-            revealedCells = nextRevealed;
-            randomRevealedCells = nextRandom;
+        <button class="btn btn-primary" id="confirmSelectionBtn" onclick="confirmSelection()" disabled>
+          ✅ 确认选择并展示
+        </button>
 
-            renderScoreboard();
+        <!-- ✅ 位置调整：公布答案放在“下一张图片”之前 -->
+        <button class="btn btn-warning" id="revealAnswerBtn" onclick="revealAnswerToAll()" disabled>
+          🖼️ 向玩家展示完整图片（公布答案）
+        </button>
 
-            // 确保玩家端图片能显示：判断是否需要 load
-            const img = document.getElementById('gameImage');
-            const targetUrl = (imageUrls && imageUrls.length > 0) ? imageUrls[nextImageIndex] : '';
+        <button class="btn btn-danger" id="nextImageBtn" onclick="nextImage()" disabled>
+          ⏭️ 下一张图片
+        </button>
+      </div>
+    </div>
+  </div>
 
-            const alreadyLoadedThis = !!img.src && !!targetUrl && (img.src === targetUrl || img.src.includes(
-            targetUrl));
+  <!-- ✅ 新增：帮助弹窗 -->
+  <div class="config-modal" id="helpModal">
+    <div class="config-content">
+      <h2>❓ 帮助</h2>
+      <div class="info-box" style="margin-bottom: 15px;">
+        <p id="instructionText">
+          <b>【游戏前配置】</b><br>
+          点击「打开玩家显示屏」→ 将玩家窗口投屏给玩家（如腾讯会议共享）→ 点击「设置玩家」→ 点击「配置图片链接」<br><br>
 
-            const needLoad = !!targetUrl && (!alreadyLoadedThis || nextImageIndex !== currentImageIndex);
+          <b>【游戏进行中】</b><br>
+          可多轮执行：点击「选择展示区块」→ 选择任意数量区块 → 点击「确认选择并展示」（玩家抢答）<br>
+          每张图片可重复多轮，直到有玩家答对 <br><br>
 
-            currentImageIndex = nextImageIndex;
+          <a href="https://github.com/Davy-Chendy/anime-master-game" target="_blank" rel="noopener noreferrer">📖 详细说明（可构建自己的题库）</a>
+        </p>
+      </div>
+      <div class="config-buttons">
+        <button class="btn btn-warning" onclick="closeHelp()">关闭</button>
+      </div>
+    </div>
+  </div>
 
-            if (imageUrls.length > 0) {
-                if (needLoad) {
-                    loadImage(currentImageIndex, () => {
-                        ensureGrid();
-                        renderGridFromState();
-                        updateStatus();
-                    });
-                } else {
-                    ensureGrid();
-                    renderGridFromState();
-                    updateStatus();
-                }
-            } else {
-                updateStatus();
-            }
-        }
+  <!-- 玩家设置模态框 -->
+  <div class="config-modal" id="playerSetupModal">
+    <div class="config-content">
+      <h2>👥 设置玩家</h2>
+      <div class="player-setup">
+        <p style="color: #666; margin-bottom: 15px;">请选择玩家人数：</p>
+        <div class="player-count-selector" id="playerCountSelector">
+          <button class="count-btn" onclick="selectPlayerCount(2)">2人</button>
+          <button class="count-btn" onclick="selectPlayerCount(3)">3人</button>
+          <button class="count-btn" onclick="selectPlayerCount(4)">4人</button>
+          <button class="count-btn" onclick="selectPlayerCount(5)">5人</button>
+          <button class="count-btn" onclick="selectPlayerCount(6)">6人</button>
+          <button class="count-btn" onclick="selectPlayerCount(7)">7人</button>
+          <button class="count-btn" onclick="selectPlayerCount(8)">8人</button>
+        </div>
 
-        channel.onmessage = (ev) => {
-            const msg = ev.data;
-            if (!msg) return;
+        <div class="player-names-input" id="playerNamesInput">
+          <p style="color: #666; margin-bottom: 10px;">请输入玩家名字：</p>
+          <div id="nameInputs"></div>
+        </div>
+      </div>
+      <div class="config-buttons">
+        <button class="btn btn-primary" onclick="savePlayerSetup()">💾 保存玩家设置</button>
+        <button class="btn btn-warning" onclick="closePlayerSetup()">❌ 取消</button>
+      </div>
+    </div>
+  </div>
 
-            if (msg.type === 'state') {
-                if (IS_HOST) return; // host 不吃别人的 state
-                if (!msg.state) return;
-                applyGameState(msg.state);
-            }
+  <!-- 图片配置模态框 -->
+  <div class="config-modal" id="configModal">
+    <div class="config-content">
+      <h2>⚙️ 配置图片链接</h2>
 
-            if (msg.type === 'request_state') {
-                if (!IS_HOST) return;
-                broadcastState('player_request_state');
-            }
-        };
+      <a href="https://github.com/Davy-Chendy/anime-master-game"
+        target="_blank"
+        rel="noopener noreferrer"
+        style="display: inline-block; margin: 6px 0 12px; color:#1a73e8; text-decoration: none;">
+        📖 如何构建自己的题库
+      </a>
 
-        // ========== 初始化 ==========
-        function init() {
-            document.getElementById('roleBadge').textContent = IS_HOST ? '主持人屏（HOST）' : '玩家屏（PLAYER）';
+      <p style="color: #666; margin-bottom: 15px;">
+        每行一个图片URL，支持任何可访问的在线图片链接<br>
+        示例：https://example.com/pic1.jpg
+      </p>
 
-            if (!IS_HOST) {
-                document.body.classList.add('player-locked');
-                isFullImageMode = false;
-            } else {
-                // 读取随机额外展示开关（默认 true）
-                const savedToggle = localStorage.getItem('animeGameRandomExtraEnabled');
-                if (savedToggle !== null) randomExtraEnabled = (savedToggle === 'true');
-                const toggle = document.getElementById('randomExtraToggle');
-                if (toggle) toggle.checked = randomExtraEnabled;
-            }
+      <textarea id="imageUrlsInput"
+        placeholder="请输入图片链接，每行一个&#10;https://example.com/pic1.jpg&#10;https://example.com/pic2.jpg&#10;..."></textarea>
 
-            const savedPlayers = localStorage.getItem('animeGamePlayers');
-            if (savedPlayers) players = JSON.parse(savedPlayers);
+      <div class="config-buttons">
+        <button class="btn btn-info" onclick="loadAuthorExamples()">📚 使用作者题库</button>
+        <button class="btn btn-primary" onclick="saveConfig()">💾 保存配置</button>
+        <button class="btn btn-warning" onclick="closeConfig()">❌ 取消</button>
+      </div>
+    </div>
+  </div>
 
-            const savedUrls = localStorage.getItem('animeGameImageUrls');
-            if (savedUrls) imageUrls = JSON.parse(savedUrls);
 
-            renderScoreboard();
+  <script>
+    /**
+     * 双屏主持人模式（同机双窗口）
+     * - role=host：可操作（默认）
+     * - role=player：完全不可操作，只接收 host 广播的状态并渲染
+     */
+    const params = new URLSearchParams(location.search);
+    const ROLE = (params.get('role') || 'host').toLowerCase();
+    const IS_HOST = ROLE !== 'player';
+
+    const CHANNEL_NAME = 'anime-game-sync-v4';
+    const channel = new BroadcastChannel(CHANNEL_NAME);
+
+    // 游戏状态
+    let currentImageIndex = 0;
+    let currentRound = 0;
+    let selectedCells = [];
+    let revealedCells = new Set();
+    let randomRevealedCells = new Set();
+    let isFullImageMode = false;
+    let imageUrls = [];
+    let players = [];
+    let randomExtraEnabled = true;
+
+    // ✅ 新增：答案公布态（一次性，不提供关闭；下一张图会自动退出）
+    let answerRevealed = false;
+
+    const ROWS = 5, COLS = 9;
+    const TOTAL_CELLS = ROWS * COLS;
+
+    // ✅ 帮助弹窗
+    function openHelp() {
+      if (!IS_HOST) return;
+      document.getElementById('helpModal').classList.add('active');
+    }
+    function closeHelp() {
+      document.getElementById('helpModal').classList.remove('active');
+    }
+
+    // ========== 同步 ==========
+    function getGameState() {
+      return {
+        v: 4,
+        ts: Date.now(),
+        currentImageIndex,
+        currentRound,
+        imageUrls,
+        players,
+        revealedCells: Array.from(revealedCells),
+        randomRevealedCells: Array.from(randomRevealedCells),
+        randomExtraEnabled,
+        answerRevealed
+      };
+    }
+
+    function broadcastState(reason = '') {
+      if (!IS_HOST) return;
+      channel.postMessage({ type: 'state', reason, state: getGameState() });
+    }
+
+    function applyGameState(state) {
+      if (Array.isArray(state.imageUrls)) imageUrls = state.imageUrls;
+      if (Array.isArray(state.players)) players = state.players;
+
+      if (typeof state.randomExtraEnabled === 'boolean') {
+        randomExtraEnabled = state.randomExtraEnabled;
+        const toggle = document.getElementById('randomExtraToggle');
+        if (toggle) toggle.checked = randomExtraEnabled;
+      }
+
+      if (typeof state.answerRevealed === 'boolean') {
+        answerRevealed = state.answerRevealed;
+      }
+
+      const nextImageIndex = Number(state.currentImageIndex || 0);
+      const nextRound = Number(state.currentRound || 0);
+      const nextRevealed = new Set(Array.isArray(state.revealedCells) ? state.revealedCells : []);
+      const nextRandom = new Set(Array.isArray(state.randomRevealedCells) ? state.randomRevealedCells : []);
+
+      currentRound = nextRound;
+      revealedCells = nextRevealed;
+      randomRevealedCells = nextRandom;
+
+      renderScoreboard();
+
+      // 确保玩家端图片能显示：判断是否需要 load
+      const img = document.getElementById('gameImage');
+      const targetUrl = (imageUrls && imageUrls.length > 0) ? imageUrls[nextImageIndex] : '';
+      const alreadyLoadedThis =
+        !!img.src && !!targetUrl && (img.src === targetUrl || img.src.includes(targetUrl));
+      const needLoad = !!targetUrl && (!alreadyLoadedThis || nextImageIndex !== currentImageIndex);
+
+      currentImageIndex = nextImageIndex;
+
+      if (imageUrls.length > 0) {
+        if (needLoad) {
+          ensureGrid();
+          coverAllCells(); // 防闪
+          loadImage(currentImageIndex, () => {
             ensureGrid();
-            updateSelectionCount();
+            renderGridFromState();
             updateStatus();
-
-            if (IS_HOST) {
-                if (imageUrls.length > 0 && players.length > 0) {
-                    loadImage(0, () => {
-                        document.getElementById('showFullBtn').disabled = false;
-                        document.getElementById('nextImageBtn').disabled = false;
-                        broadcastState('init');
-                    });
-                }
-            } else {
-                channel.postMessage({
-                    type: 'request_state',
-                    ts: Date.now()
-                });
-            }
-
-            if (!IS_HOST) {
-                const btn = document.getElementById('openPlayerBtn');
-                if (btn) btn.style.display = 'none';
-            }
+            updateButtonsByState();
+          });
+        } else {
+          ensureGrid();
+          renderGridFromState();
+          updateStatus();
+          updateButtonsByState();
         }
+      } else {
+        updateStatus();
+        updateButtonsByState();
+      }
+    }
 
-        // ========== Host：一键打开玩家屏 ==========
-        function openPlayerScreen() {
-            if (!IS_HOST) return;
-            const url = new URL(window.location.href);
-            url.searchParams.set('role', 'player');
-            const w = window.open(url.toString(), 'animeGamePlayer', 'noopener,noreferrer');
-            if (!w) {
-                alert('浏览器拦截了弹窗。请允许弹窗后重试，或手动打开：\n' + url.toString());
-                return;
-            }
-            setTimeout(() => {
-                try {
-                    w.focus();
-                } catch (e) {}
-            }, 200);
+    channel.onmessage = (ev) => {
+      const msg = ev.data;
+      if (!msg) return;
+
+      if (msg.type === 'state') {
+        if (IS_HOST) return;
+        if (!msg.state) return;
+        applyGameState(msg.state);
+      }
+
+      if (msg.type === 'request_state') {
+        if (!IS_HOST) return;
+        broadcastState('player_request_state');
+      }
+    };
+
+    // ========== 初始化 ==========
+    function init() {
+      document.getElementById('roleBadge').textContent = IS_HOST ? '主持人屏（HOST）' : '玩家屏（PLAYER）';
+
+      if (!IS_HOST) {
+        document.body.classList.add('player-locked');
+        isFullImageMode = false;
+      } else {
+        const savedToggle = localStorage.getItem('animeGameRandomExtraEnabled');
+        if (savedToggle !== null) randomExtraEnabled = (savedToggle === 'true');
+        const toggle = document.getElementById('randomExtraToggle');
+        if (toggle) toggle.checked = randomExtraEnabled;
+      }
+
+      const savedPlayers = localStorage.getItem('animeGamePlayers');
+      if (savedPlayers) players = JSON.parse(savedPlayers);
+
+      const savedUrls = localStorage.getItem('animeGameImageUrls');
+      if (savedUrls) imageUrls = JSON.parse(savedUrls);
+
+      renderScoreboard();
+      ensureGrid();
+      updateSelectionCount();
+      updateStatus();
+
+      // 计分板清空按钮仅 Host 显示
+      document.getElementById('scoreboardActions').style.display = IS_HOST ? 'flex' : 'none';
+
+      if (IS_HOST) {
+        if (imageUrls.length > 0 && players.length > 0) {
+          loadImage(0, () => {
+            document.getElementById('showFullBtn').disabled = false;
+            document.getElementById('nextImageBtn').disabled = false;
+            document.getElementById('revealAnswerBtn').disabled = false;
+            updateButtonsByState();
+            broadcastState('init');
+          });
+        } else {
+          updateButtonsByState();
         }
+      } else {
+        channel.postMessage({ type: 'request_state', ts: Date.now() });
+      }
 
-        // ========== (1) 清空分数 ==========
-        function clearAllScores() {
-            if (!IS_HOST) return;
-            if (players.length === 0) {
-                alert('还没有玩家。');
-                return;
-            }
-            if (!confirm('确定要清空所有玩家分数吗？')) return;
+      if (!IS_HOST) {
+        const btn = document.getElementById('openPlayerBtn');
+        if (btn) btn.style.display = 'none';
+        const helpBtn = document.getElementById('helpBtn');
+        if (helpBtn) helpBtn.style.display = 'none';
+      }
+    }
 
-            players = players.map(p => ({
-                ...p,
-                score: 0
-            }));
-            localStorage.setItem('animeGamePlayers', JSON.stringify(players));
-            renderScoreboard();
-            broadcastState('clear_scores');
-        }
+    function updateButtonsByState() {
+      if (!IS_HOST) return;
 
-        // ========== (4) 随机额外展示开关 ==========
-        function toggleRandomExtra() {
-            if (!IS_HOST) return;
-            const toggle = document.getElementById('randomExtraToggle');
-            randomExtraEnabled = !!toggle.checked;
-            localStorage.setItem('animeGameRandomExtraEnabled', String(randomExtraEnabled));
-            broadcastState('toggle_random_extra');
-        }
+      const hasReady = (imageUrls.length > 0 && players.length > 0);
+      const showFullBtn = document.getElementById('showFullBtn');
+      const confirmBtn = document.getElementById('confirmSelectionBtn');
+      const nextBtn = document.getElementById('nextImageBtn');
+      const revealBtn = document.getElementById('revealAnswerBtn');
 
-        // ========== 玩家设置相关 ==========
-        function openPlayerSetup() {
-            if (!IS_HOST) return;
-            document.getElementById('playerSetupModal').classList.add('active');
-        }
+      if (!showFullBtn || !confirmBtn || !nextBtn || !revealBtn) return;
 
-        function closePlayerSetup() {
-            document.getElementById('playerSetupModal').classList.remove('active');
-        }
+      // 公布答案后：锁住“选块/确认”，只剩“下一张图片”
+      if (answerRevealed) {
+        showFullBtn.disabled = true;
+        confirmBtn.disabled = true;
+        revealBtn.disabled = true; // 一次性动作，不再允许重复点
+        nextBtn.disabled = !hasReady;
+        return;
+      }
 
-        function selectPlayerCount(count) {
-            if (!IS_HOST) return;
-            document.querySelectorAll('.count-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+      // 未公布：根据常规可用性
+      showFullBtn.disabled = !hasReady || isFullImageMode;
+      nextBtn.disabled = !hasReady;
+      revealBtn.disabled = !hasReady;
 
-            const container = document.getElementById('nameInputs');
-            container.innerHTML = '';
-            for (let i = 0; i < count; i++) {
-                const input = document.createElement('input');
-                input.type = 'text';
-                input.className = 'player-input';
-                input.placeholder = `玩家 ${i + 1} 的名字`;
-                input.value = players[i] ? players[i].name : '';
-                container.appendChild(input);
-            }
-            document.getElementById('playerNamesInput').classList.add('active');
-        }
+      // confirmBtn 由 updateSelectionCount 控制（需选 >0）
+      updateSelectionCount();
+    }
 
-        function savePlayerSetup() {
-            if (!IS_HOST) return;
-            const inputs = document.querySelectorAll('#nameInputs .player-input');
-            if (inputs.length === 0) {
-                alert('请先选择玩家人数！');
-                return;
-            }
+    // ========== Host：一键打开玩家屏 ==========
+    function openPlayerScreen() {
+      if (!IS_HOST) return;
+      const url = new URL(window.location.href);
+      url.searchParams.set('role', 'player');
+      const w = window.open(url.toString(), 'animeGamePlayer', 'noopener,noreferrer');
+      if (!w) {
+        alert('浏览器拦截了弹窗。请允许弹窗后重试，或手动打开：\n' + url.toString());
+        return;
+      }
+      setTimeout(() => { try { w.focus(); } catch (e) { } }, 200);
+    }
 
-            const newPlayers = [];
-            let hasEmpty = false;
+    // ========== 一键重置 ==========
+    function resetAll() {
+      if (!IS_HOST) return;
+      if (!confirm('确定要一键重置吗？这会清空玩家、分数、图片配置、开关状态，并回到初始界面。')) return;
 
-            inputs.forEach((input, index) => {
-                const name = input.value.trim();
-                if (!name) {
-                    hasEmpty = true;
-                    return;
-                }
-                newPlayers.push({
-                    name,
-                    score: players[index] ? players[index].score : 0
-                });
-            });
+      localStorage.removeItem('animeGamePlayers');
+      localStorage.removeItem('animeGameImageUrls');
+      localStorage.removeItem('animeGameRandomExtraEnabled');
 
-            if (hasEmpty) {
-                alert('请填写所有玩家的名字！');
-                return;
-            }
+      players = [];
+      imageUrls = [];
+      currentImageIndex = 0;
+      currentRound = 0;
+      selectedCells = [];
+      revealedCells.clear();
+      randomRevealedCells.clear();
+      isFullImageMode = false;
+      randomExtraEnabled = true;
+      answerRevealed = false;
 
-            players = newPlayers;
-            localStorage.setItem('animeGamePlayers', JSON.stringify(players));
-            renderScoreboard();
-            closePlayerSetup();
+      renderScoreboard();
+      ensureGrid(true);
+      coverAllCells();
+      updateSelectionCount();
+      updateStatus();
+      updateButtonsByState();
 
-            if (imageUrls.length > 0) {
-                document.getElementById('showFullBtn').disabled = false;
-                document.getElementById('nextImageBtn').disabled = false;
-            }
+      const img = document.getElementById('gameImage');
+      const wrapper = document.getElementById('imageWrapper');
+      const loading = document.getElementById('loadingText');
+      img.src = '';
+      img.style.display = 'none';
+      wrapper.style.display = 'none';
+      loading.style.display = 'block';
+      loading.textContent = '请先设置玩家和图片';
 
-            broadcastState('save_players');
-            alert(`成功设置 ${players.length} 位玩家！`);
-        }
+      closeConfig();
+      closePlayerSetup();
+      closeHelp();
 
-        function renderScoreboard() {
-            const container = document.getElementById('playersGrid');
-            container.innerHTML = '';
+      broadcastState('reset_all');
+      alert('已重置到初始状态。');
+    }
 
-            if (players.length === 0) {
-                document.getElementById('scoreboard').style.display = 'none';
-                return;
-            }
+    // ========== 清空分数 ==========
+    function clearAllScores() {
+      if (!IS_HOST) return;
+      if (players.length === 0) {
+        alert('还没有玩家。');
+        return;
+      }
+      if (!confirm('确定要清空所有玩家分数吗？')) return;
 
-            document.getElementById('scoreboard').style.display = 'block';
+      players = players.map(p => ({ ...p, score: 0 }));
+      localStorage.setItem('animeGamePlayers', JSON.stringify(players));
+      renderScoreboard();
+      broadcastState('clear_scores');
+    }
 
-            players.forEach((player, index) => {
-                const card = document.createElement('div');
-                card.className = 'player-card';
-                card.innerHTML = `
+    // ========== 随机额外展示开关 ==========
+    function toggleRandomExtra() {
+      if (!IS_HOST) return;
+      const toggle = document.getElementById('randomExtraToggle');
+      randomExtraEnabled = !!toggle.checked;
+      localStorage.setItem('animeGameRandomExtraEnabled', String(randomExtraEnabled));
+      broadcastState('toggle_random_extra');
+    }
+
+    // ========== 玩家设置相关 ==========
+    function openPlayerSetup() {
+      if (!IS_HOST) return;
+      document.getElementById('playerSetupModal').classList.add('active');
+    }
+
+    function closePlayerSetup() {
+      document.getElementById('playerSetupModal').classList.remove('active');
+    }
+
+    function selectPlayerCount(count) {
+      if (!IS_HOST) return;
+      document.querySelectorAll('.count-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+
+      const container = document.getElementById('nameInputs');
+      container.innerHTML = '';
+      for (let i = 0; i < count; i++) {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'player-input';
+        input.placeholder = `玩家 ${i + 1} 的名字`;
+        input.value = players[i] ? players[i].name : '';
+        container.appendChild(input);
+      }
+      document.getElementById('playerNamesInput').classList.add('active');
+    }
+
+    function savePlayerSetup() {
+      if (!IS_HOST) return;
+      const inputs = document.querySelectorAll('#nameInputs .player-input');
+      if (inputs.length === 0) {
+        alert('请先选择玩家人数！');
+        return;
+      }
+
+      const newPlayers = [];
+      let hasEmpty = false;
+
+      inputs.forEach((input, index) => {
+        const name = input.value.trim();
+        if (!name) { hasEmpty = true; return; }
+        newPlayers.push({ name, score: players[index] ? players[index].score : 0 });
+      });
+
+      if (hasEmpty) {
+        alert('请填写所有玩家的名字！');
+        return;
+      }
+
+      players = newPlayers;
+      localStorage.setItem('animeGamePlayers', JSON.stringify(players));
+      renderScoreboard();
+      closePlayerSetup();
+
+      if (imageUrls.length > 0) {
+        document.getElementById('showFullBtn').disabled = false;
+        document.getElementById('nextImageBtn').disabled = false;
+        document.getElementById('revealAnswerBtn').disabled = false;
+      }
+
+      updateButtonsByState();
+      broadcastState('save_players');
+      alert(`成功设置 ${players.length} 位玩家！`);
+    }
+
+    function renderScoreboard() {
+      const container = document.getElementById('playersGrid');
+      container.innerHTML = '';
+
+      if (players.length === 0) {
+        document.getElementById('scoreboard').style.display = 'none';
+        return;
+      }
+
+      document.getElementById('scoreboard').style.display = 'block';
+
+      players.forEach((player, index) => {
+        const card = document.createElement('div');
+        card.className = 'player-card';
+        card.innerHTML = `
           <div class="player-info">
             <div class="player-name">${escapeHtml(player.name)}</div>
             <div class="player-score">${player.score} 分</div>
@@ -918,339 +992,392 @@
             <button class="score-btn minus" onclick="addScore(${index}, -1)">−</button>
           </div>
         `;
-                container.appendChild(card);
-            });
+        container.appendChild(card);
+      });
+    }
+
+    function addScore(playerIndex, delta) {
+      if (!IS_HOST) return;
+      players[playerIndex].score += delta;
+      if (players[playerIndex].score < 0) players[playerIndex].score = 0;
+      localStorage.setItem('animeGamePlayers', JSON.stringify(players));
+      renderScoreboard();
+      broadcastState('score_change');
+    }
+
+    // ========== 图片配置相关 ==========
+    function openConfig() {
+      if (!IS_HOST) return;
+      document.getElementById('configModal').classList.add('active');
+      document.getElementById('imageUrlsInput').value = imageUrls.join('\n');
+    }
+
+    function closeConfig() {
+      document.getElementById('configModal').classList.remove('active');
+    }
+
+    async function loadAuthorExamples() {
+      if (!IS_HOST) return;
+
+      const textarea = document.getElementById('imageUrlsInput');
+      textarea.value = '读取 examples.txt 中...';
+
+      try {
+        const res = await fetch('./examples.txt', { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const text = await res.text();
+
+        const urls = text
+          .split(/\r?\n/)
+          .map(s => s.trim())
+          .filter(s => s.length > 0 && !s.startsWith('#'));
+
+        if (urls.length === 0) {
+          textarea.value = '';
+          alert('examples.txt 为空或没有有效链接。');
+          return;
         }
 
-        function addScore(playerIndex, delta) {
-            if (!IS_HOST) return;
-            players[playerIndex].score += delta;
-            if (players[playerIndex].score < 0) players[playerIndex].score = 0;
-            localStorage.setItem('animeGamePlayers', JSON.stringify(players));
-            renderScoreboard();
-            broadcastState('score_change');
+        textarea.value = urls.join('\n');
+        alert(`已加载作者题库：${urls.length} 条链接。`);
+      } catch (e) {
+        console.error(e);
+        textarea.value = '';
+        alert(
+          '读取 examples.txt 失败。\n' +
+          '请确认 examples.txt 与 index.html 在同一目录，并通过 http(s) 方式运行（例如 GitHub Pages 或 python -m http.server）。'
+        );
+      }
+    }
+
+    function saveConfig() {
+      if (!IS_HOST) return;
+      const input = document.getElementById('imageUrlsInput').value;
+      const urls = input.split('\n').map(u => u.trim()).filter(u => u.length > 0);
+
+      if (urls.length === 0) {
+        alert('请至少输入一个图片链接！');
+        return;
+      }
+
+      imageUrls = urls;
+      localStorage.setItem('animeGameImageUrls', JSON.stringify(imageUrls));
+
+      // 配置更新：退出答案公布态，回到正常流程
+      answerRevealed = false;
+
+      resetProgressForNewImage(0);
+
+      loadImage(0, () => {
+        ensureGrid(true);
+        renderGridFromState();
+        updateStatus();
+        updateButtonsByState();
+
+        if (players.length > 0) {
+          document.getElementById('showFullBtn').disabled = false;
+          document.getElementById('nextImageBtn').disabled = false;
+          document.getElementById('revealAnswerBtn').disabled = false;
         }
 
-        // ========== 图片配置相关 ==========
-        function openConfig() {
-            if (!IS_HOST) return;
-            document.getElementById('configModal').classList.add('active');
-            document.getElementById('imageUrlsInput').value = imageUrls.join('\n');
+        document.getElementById('confirmSelectionBtn').disabled = true;
+
+        updateSelectionCount();
+        broadcastState('save_config');
+        closeConfig();
+        alert(`成功加载 ${imageUrls.length} 张图片！`);
+      });
+    }
+
+    function resetProgressForNewImage(index) {
+      currentImageIndex = index;
+      currentRound = 0;
+      selectedCells = [];
+      revealedCells.clear();
+      randomRevealedCells.clear();
+      isFullImageMode = false;
+    }
+
+    function loadImage(index, onDone) {
+      if (index < 0 || index >= imageUrls.length) {
+        if (IS_HOST) alert('图片索引超出范围！');
+        return;
+      }
+
+      const img = document.getElementById('gameImage');
+      const wrapper = document.getElementById('imageWrapper');
+      const loading = document.getElementById('loadingText');
+
+      loading.textContent = '加载中...';
+      loading.style.display = 'block';
+      wrapper.style.display = 'none';
+
+      // ✅ 防闪：先盖黑、隐藏图层
+      ensureGrid();
+      coverAllCells();
+      img.style.display = 'none';
+      wrapper.style.display = 'none';
+
+      img.onload = function () {
+        loading.style.display = 'none';
+        wrapper.style.display = 'inline-block';
+        img.style.display = 'block';
+        syncGridOverlay();
+        if (typeof onDone === 'function') onDone();
+      };
+
+      img.onerror = function () {
+        loading.textContent = '图片加载失败，请检查链接';
+        loading.style.display = 'block';
+        wrapper.style.display = 'none';
+        if (typeof onDone === 'function') onDone();
+      };
+
+      img.src = imageUrls[index];
+    }
+
+    function syncGridOverlay() {
+      const img = document.getElementById('gameImage');
+      const overlay = document.getElementById('gridOverlay');
+      overlay.style.width = img.offsetWidth + 'px';
+      overlay.style.height = img.offsetHeight + 'px';
+    }
+
+    window.addEventListener('resize', function () {
+      if (document.getElementById('gameImage').style.display !== 'none') {
+        syncGridOverlay();
+      }
+    });
+
+    function ensureGrid(forceRecreate = false) {
+      const overlay = document.getElementById('gridOverlay');
+      if (!overlay) return;
+      if (forceRecreate || overlay.children.length !== TOTAL_CELLS) createGrid();
+    }
+
+    function createGrid() {
+      const overlay = document.getElementById('gridOverlay');
+      overlay.innerHTML = '';
+      for (let i = 0; i < TOTAL_CELLS; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'grid-cell covered';
+        cell.dataset.index = i;
+        cell.onclick = () => selectCell(i);
+        overlay.appendChild(cell);
+      }
+    }
+
+    function coverAllCells() {
+      const cells = document.querySelectorAll('.grid-cell');
+      cells.forEach(cell => {
+        cell.classList.remove(
+          'selectable', 'selected',
+          'revealed', 'revealed-hint',
+          'random-revealed', 'random-revealed-hint'
+        );
+        cell.classList.add('covered');
+      });
+    }
+
+    // ========== 出题流程：任意数量 ==========
+    function showFullImage() {
+      if (!IS_HOST) return;
+      if (answerRevealed) return; // 公布答案后不允许再进入选块
+
+      selectedCells = [];
+      isFullImageMode = true;
+
+      document.getElementById('showFullBtn').disabled = true;
+
+      updateSelectionCount();
+      renderGridFromState();
+      updateButtonsByState();
+    }
+
+    function selectCell(index) {
+      if (!IS_HOST) return;
+      if (!isFullImageMode) return;
+      if (answerRevealed) return;
+      if (revealedCells.has(index) || randomRevealedCells.has(index)) return;
+
+      const cell = document.querySelectorAll('.grid-cell')[index];
+      if (selectedCells.includes(index)) {
+        selectedCells = selectedCells.filter(i => i !== index);
+        cell.classList.remove('selected');
+      } else {
+        selectedCells.push(index);
+        cell.classList.add('selected');
+      }
+
+      updateSelectionCount();
+    }
+
+    function updateSelectionCount() {
+      const el = document.getElementById('selectionCount');
+      if (el) el.textContent = `已选择: ${selectedCells.length} 个方块`;
+
+      const confirmBtn = document.getElementById('confirmSelectionBtn');
+      if (confirmBtn) {
+        confirmBtn.disabled = !(IS_HOST && isFullImageMode && selectedCells.length > 0 && !answerRevealed);
+      }
+    }
+
+    function confirmSelection() {
+      if (!IS_HOST) return;
+      if (!isFullImageMode) return;
+      if (answerRevealed) return;
+      if (selectedCells.length <= 0) return;
+
+      selectedCells.forEach(index => revealedCells.add(index));
+
+      if (randomExtraEnabled) {
+        const available = [];
+        for (let i = 0; i < TOTAL_CELLS; i++) {
+          if (!revealedCells.has(i) && !randomRevealedCells.has(i)) available.push(i);
         }
-
-        function closeConfig() {
-            document.getElementById('configModal').classList.remove('active');
+        if (available.length > 0) {
+          const rand = available[Math.floor(Math.random() * available.length)];
+          randomRevealedCells.add(rand);
+          revealedCells.add(rand);
         }
+      }
 
-        function saveConfig() {
-            if (!IS_HOST) return;
-            const input = document.getElementById('imageUrlsInput').value;
-            const urls = input.split('\n').map(u => u.trim()).filter(u => u.length > 0);
+      currentRound++;
+      selectedCells = [];
+      isFullImageMode = false;
 
-            if (urls.length === 0) {
-                alert('请至少输入一个图片链接！');
-                return;
-            }
+      document.getElementById('confirmSelectionBtn').disabled = true;
+      document.getElementById('showFullBtn').disabled = false;
 
-            imageUrls = urls;
-            localStorage.setItem('animeGameImageUrls', JSON.stringify(imageUrls));
+      updateSelectionCount();
+      renderGridFromState();
+      updateStatus();
+      updateButtonsByState();
+      broadcastState('confirm_selection');
+    }
 
-            resetProgressForNewImage(0);
+    // ✅ 新增：一次性公布答案（Host/Player 同步全图）
+    function revealAnswerToAll() {
+      if (!IS_HOST) return;
+      if (imageUrls.length === 0) return;
 
-            loadImage(0, () => {
-                ensureGrid(true);
-                renderGridFromState();
-                updateStatus();
+      answerRevealed = true;
+      isFullImageMode = false;
+      selectedCells = [];
 
-                if (players.length > 0) {
-                    document.getElementById('showFullBtn').disabled = false;
-                    document.getElementById('nextImageBtn').disabled = false;
-                }
+      // 公布后直接全图
+      renderGridFromState();
+      updateButtonsByState();
+      broadcastState('reveal_answer');
+    }
 
-                document.getElementById('confirmSelectionBtn').disabled = true;
-                document.getElementById('instructionText').innerHTML =
-                    '点击"展示完整图片"进入出题者模式，选择任意数量方块后点击"确认选择"';
+    // ========== 下一张 ==========
+    function nextImage() {
+      if (!IS_HOST) return;
 
-                updateSelectionCount();
-                broadcastState('save_config');
-                closeConfig();
-                alert(`成功加载 ${imageUrls.length} 张图片！`);
-            });
-        }
+      // ✅ 若已公布答案，则直接进入下一张，不弹确认框
+      if (!answerRevealed) {
+        if (!confirm('确定要进入下一张图片吗？当前进度将重置。')) return;
+      }
 
-        function resetProgressForNewImage(index) {
-            currentImageIndex = index;
-            currentRound = 0;
-            selectedCells = [];
-            revealedCells.clear();
-            randomRevealedCells.clear();
-            isFullImageMode = false;
-        }
+      currentImageIndex++;
+      if (currentImageIndex >= imageUrls.length) currentImageIndex = 0;
 
-        function loadImage(index, onDone) {
-            if (index < 0 || index >= imageUrls.length) {
-                if (IS_HOST) alert('图片索引超出范围！');
-                return;
-            }
+      resetProgressForNewImage(currentImageIndex);
 
-            const img = document.getElementById('gameImage');
-            const wrapper = document.getElementById('imageWrapper');
-            const loading = document.getElementById('loadingText');
+      // ✅ 下一张图自动退出“公布答案态”
+      answerRevealed = false;
 
-            loading.textContent = '加载中...';
-            loading.style.display = 'block';
-            wrapper.style.display = 'none';
+      // ✅ 双保险：切图前先全部盖黑
+      ensureGrid();
+      coverAllCells();
 
-            // ✅ 防闪：先把所有格子盖黑，避免透明格子透出任何内容
-            ensureGrid(); // 确保格子存在
-            coverAllCells(); // 强制盖回黑色
-            img.style.display = 'none';
-            wrapper.style.display = 'none';
+      loadImage(currentImageIndex, () => {
+        ensureGrid(true);
+        renderGridFromState();
 
-            img.onload = function () {
-                loading.style.display = 'none';
-                wrapper.style.display = 'inline-block';
-                img.style.display = 'block';
-                syncGridOverlay();
-                if (typeof onDone === 'function') onDone();
-            };
+        document.getElementById('showFullBtn').disabled = false;
+        document.getElementById('confirmSelectionBtn').disabled = true;
 
-            img.onerror = function () {
-                loading.textContent = '图片加载失败，请检查链接';
-                loading.style.display = 'block';
-                wrapper.style.display = 'none';
-                if (typeof onDone === 'function') onDone();
-            };
+        updateStatus();
+        updateSelectionCount();
+        updateButtonsByState();
+        broadcastState('next_image');
+      });
+    }
 
-            img.src = imageUrls[index];
-        }
+    // ========== 渲染 ==========
+    function renderGridFromState() {
+      const cells = document.querySelectorAll('.grid-cell');
+      if (!cells || cells.length === 0) return;
 
-        function syncGridOverlay() {
-            const img = document.getElementById('gameImage');
-            const overlay = document.getElementById('gridOverlay');
-            overlay.style.width = img.offsetWidth + 'px';
-            overlay.style.height = img.offsetHeight + 'px';
-        }
+      const inHostSelectMode = (IS_HOST && isFullImageMode);
 
-        window.addEventListener('resize', function () {
-            if (document.getElementById('gameImage').style.display !== 'none') {
-                syncGridOverlay();
-            }
+      // ✅ 公布答案：Host/Player 都全图
+      if (answerRevealed) {
+        cells.forEach(cell => {
+          cell.classList.remove(
+            'selectable', 'selected',
+            'revealed', 'revealed-hint',
+            'random-revealed', 'random-revealed-hint',
+            'covered'
+          );
         });
+        return;
+      }
 
-        function ensureGrid(forceRecreate = false) {
-            const overlay = document.getElementById('gridOverlay');
-            if (!overlay) return;
-            if (forceRecreate || overlay.children.length !== TOTAL_CELLS) createGrid();
+      cells.forEach((cell, index) => {
+        cell.classList.remove(
+          'selectable', 'selected',
+          'revealed', 'revealed-hint',
+          'random-revealed', 'random-revealed-hint'
+        );
+
+        if (inHostSelectMode) {
+          cell.classList.remove('covered');
+          cell.classList.add('selectable');
+
+          if (selectedCells.includes(index)) cell.classList.add('selected');
+
+          if (revealedCells.has(index)) cell.classList.add('revealed-hint');
+          if (randomRevealedCells.has(index)) cell.classList.add('random-revealed-hint');
         }
 
-        function createGrid() {
-            const overlay = document.getElementById('gridOverlay');
-            overlay.innerHTML = '';
-            for (let i = 0; i < TOTAL_CELLS; i++) {
-                const cell = document.createElement('div');
-                cell.className = 'grid-cell covered';
-                cell.dataset.index = i;
-                cell.onclick = () => selectCell(i);
-                overlay.appendChild(cell);
-            }
+        if (revealedCells.has(index)) {
+          cell.classList.remove('covered');
+          if (randomRevealedCells.has(index)) cell.classList.add('random-revealed');
+          else cell.classList.add('revealed');
+          return;
         }
 
-        function coverAllCells() {
-            const cells = document.querySelectorAll('.grid-cell');
-            cells.forEach(cell => {
-                cell.classList.remove(
-                    'selectable', 'selected',
-                    'revealed', 'revealed-hint',
-                    'random-revealed', 'random-revealed-hint'
-                );
-                cell.classList.add('covered');
-            });
-        }
+        if (!inHostSelectMode) cell.classList.add('covered');
+      });
+    }
 
-        // ========== (2)(3) Host 出题流程简化 + 任意数量 ==========
-        function showFullImage() {
-            if (!IS_HOST) return;
+    function updateStatus() {
+      document.getElementById('currentImage').textContent = imageUrls.length ? (currentImageIndex + 1) : 0;
+      document.getElementById('totalImages').textContent = imageUrls.length;
+      document.getElementById('currentRound').textContent = currentRound;
+      document.getElementById('revealedCount').textContent = revealedCells.size;
 
-            // 进入出题者模式时，清空“本轮选择”
-            selectedCells = [];
-            isFullImageMode = true;
+      if (IS_HOST) {
+        const ready = (imageUrls.length > 0 && players.length > 0);
+        document.getElementById('revealAnswerBtn').disabled = !ready || answerRevealed;
+      }
+    }
 
-            const cells = document.querySelectorAll('.grid-cell');
-            cells.forEach((cell, index) => {
-                cell.classList.remove('covered');
-                cell.classList.add('selectable');
+    // ========== 小工具 ==========
+    function escapeHtml(str) {
+      return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
 
-                // 已展示的方块会高亮（更明显）
-                if (revealedCells.has(index)) cell.classList.add('revealed');
-                if (randomRevealedCells.has(index)) cell.classList.add('random-revealed');
-            });
-
-            document.getElementById('showFullBtn').disabled = true;
-
-            document.getElementById('instructionText').innerHTML =
-                '出题者模式：<br>可选择任意数量方块（再次点击可取消）<br>选好后点击“确认选择并遮盖”结束本轮';
-
-            updateSelectionCount();
-            renderGridFromState();
-        }
-
-        function selectCell(index) {
-            if (!IS_HOST) return;
-            if (!isFullImageMode) return;
-            if (revealedCells.has(index) || randomRevealedCells.has(index)) return;
-
-            const cell = document.querySelectorAll('.grid-cell')[index];
-            if (selectedCells.includes(index)) {
-                selectedCells = selectedCells.filter(i => i !== index);
-                cell.classList.remove('selected');
-            } else {
-                selectedCells.push(index);
-                cell.classList.add('selected');
-            }
-
-            updateSelectionCount();
-        }
-
-        function updateSelectionCount() {
-            const el = document.getElementById('selectionCount');
-            if (el) el.textContent = `已选择: ${selectedCells.length} 个方块`;
-
-            const confirmBtn = document.getElementById('confirmSelectionBtn');
-            if (confirmBtn) {
-                // (3) 任意数量：只要 >0 就允许确认（你想允许 0 的话，把 >0 去掉即可）
-                confirmBtn.disabled = !(IS_HOST && isFullImageMode && selectedCells.length > 0);
-            }
-        }
-
-        function confirmSelection() {
-            if (!IS_HOST) return;
-            if (!isFullImageMode) return;
-            if (selectedCells.length <= 0) return;
-
-            // 把本轮选择加入已展示集合
-            selectedCells.forEach(index => revealedCells.add(index));
-
-            // (4) 额外随机 1 个：可开关，默认开启
-            if (randomExtraEnabled) {
-                const available = [];
-                for (let i = 0; i < TOTAL_CELLS; i++) {
-                    if (!revealedCells.has(i) && !randomRevealedCells.has(i)) available.push(i);
-                }
-                if (available.length > 0) {
-                    const rand = available[Math.floor(Math.random() * available.length)];
-                    randomRevealedCells.add(rand);
-                    revealedCells.add(rand);
-                }
-            }
-
-            // 结束出题者模式，进入抢答展示态
-            currentRound++;
-            selectedCells = [];
-            isFullImageMode = false;
-
-            document.getElementById('confirmSelectionBtn').disabled = true;
-
-            // (2) 不需要“下一轮”按钮：本轮结束后，Host 直接可以再次点“展示完整图片”
-            document.getElementById('showFullBtn').disabled = false;
-
-            document.getElementById('instructionText').innerHTML =
-                '抢答时间！<br>下一轮：直接点击“展示完整图片（出题者）”继续';
-
-            updateSelectionCount();
-            renderGridFromState();
-            updateStatus();
-            broadcastState('confirm_selection');
-        }
-
-        // ========== 下一张 ==========
-        function nextImage() {
-            if (!IS_HOST) return;
-            if (!confirm('确定要进入下一张图片吗？当前进度将重置。')) return;
-
-            currentImageIndex++;
-            if (currentImageIndex >= imageUrls.length) currentImageIndex = 0;
-
-            resetProgressForNewImage(currentImageIndex);
-
-            loadImage(currentImageIndex, () => {
-                ensureGrid(true);
-                renderGridFromState();
-
-                document.getElementById('showFullBtn').disabled = false;
-                document.getElementById('confirmSelectionBtn').disabled = true;
-                document.getElementById('instructionText').innerHTML =
-                    '点击“展示完整图片（出题者）”进入出题者模式，选任意数量方块后点击“确认选择”';
-
-                updateStatus();
-                updateSelectionCount();
-                broadcastState('next_image');
-            });
-        }
-
-        // ========== 渲染 ==========
-        function renderGridFromState() {
-            const cells = document.querySelectorAll('.grid-cell');
-            if (!cells || cells.length === 0) return;
-
-            const inHostSelectMode = (IS_HOST && isFullImageMode);
-
-            cells.forEach((cell, index) => {
-                // 清理所有状态
-                cell.classList.remove(
-                    'selectable', 'selected',
-                    'revealed', 'revealed-hint',
-                    'random-revealed', 'random-revealed-hint'
-                );
-
-                // Host 全图选块模式：显示可选
-                if (inHostSelectMode) {
-                    cell.classList.remove('covered');
-                    cell.classList.add('selectable');
-                    if (selectedCells.includes(index)) cell.classList.add('selected');
-                }
-
-                // 已揭示：露出原图（不加蒙版）
-                if (revealedCells.has(index)) {
-                    cell.classList.remove('covered');
-
-                    const isRandom = randomRevealedCells.has(index);
-                    if (isRandom) {
-                        cell.classList.add('random-revealed');
-                        // 仅 Host 全图模式加提示蒙版
-                        if (inHostSelectMode) cell.classList.add('random-revealed-hint');
-                    } else {
-                        // cell.classList.add('revealed');
-                        // 仅 Host 全图模式加提示蒙版
-                        if (inHostSelectMode) cell.classList.add('revealed-hint');
-                    }
-                    return;
-                }
-
-                // 未揭示：非 Host 全图模式则遮盖
-                if (!inHostSelectMode) cell.classList.add('covered');
-            });
-        }
-
-        function updateStatus() {
-            document.getElementById('currentImage').textContent = imageUrls.length ? (currentImageIndex + 1) : 0;
-            document.getElementById('totalImages').textContent = imageUrls.length;
-            document.getElementById('currentRound').textContent = currentRound;
-            document.getElementById('revealedCount').textContent = revealedCells.size;
-        }
-
-        // ========== 小工具 ==========
-        function escapeHtml(str) {
-            return String(str)
-                .replaceAll('&', '&amp;')
-                .replaceAll('<', '&lt;')
-                .replaceAll('>', '&gt;')
-                .replaceAll('"', '&quot;')
-                .replaceAll("'", '&#039;');
-        }
-
-        window.onload = init;
-    </script>
+    window.onload = init;
+  </script>
 </body>
 
 </html>
