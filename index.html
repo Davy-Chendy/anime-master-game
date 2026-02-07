@@ -567,10 +567,12 @@
         <p id="instructionText">
           <b>【游戏前配置】</b><br>
           点击「打开玩家显示屏」→ 将玩家窗口投屏给玩家（如腾讯会议共享）→ 点击「设置玩家」→ 点击「配置图片链接」<br><br>
-
+                    
           <b>【游戏进行中】</b><br>
           可多轮执行：点击「选择展示区块」→ 选择任意数量区块 → 点击「确认选择并展示」（玩家抢答）<br>
           每张图片可重复多轮，直到有玩家答对 <br><br>
+          
+          ⚠️ 注意：玩家屏不要最小化，主持人屏不要最大化完全遮挡玩家屏，否则画面可能无法实时刷新。<br><br>
 
           <a href="https://github.com/Davy-Chendy/anime-master-game" target="_blank" rel="noopener noreferrer">📖 详细说明（可构建自己的题库）</a>
         </p>
@@ -938,7 +940,7 @@
         if (token !== imageLoadToken) return;
         const msg = IS_HOST
           ? '加载超过 10 秒：此图可能链接有问题。可直接点击「下一张图片」跳过本题。'
-          : '加载超过 10 秒：此图可能链接有问题。请提醒主持人点击「下一张图片」跳过本题。';
+          : '加载超过 10 秒';
         const hint = document.getElementById('loadingHint');
         if (hint) {
           hint.style.display = 'block';
@@ -1442,7 +1444,7 @@
 
         const msg = IS_HOST
           ? '图片加载失败：请检查链接，或直接点击「下一张图片」跳过本题。'
-          : '图片加载失败：请提醒主持人点击「下一张图片」跳过本题。';
+          : '图片加载失败';
 
         setLoadingUI(true, '图片加载失败，请检查链接', msg);
 
